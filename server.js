@@ -50,15 +50,16 @@ async function fetchAndCacheData(type, filename, ts, sig) {
             body: payload,
         });
 
+        // FIX: The original error happened here due to escaped backticks.
         if (!response.ok) {
-            throw new Error(\`HTTP error! Status: \${response.status}\`);
+            throw new Error(`HTTP error! Status: ${response.status}`);
         }
 
         const rawJson = await response.json();
         const base64Data = rawJson.data;
 
         if (!base64Data) {
-            throw new Error(\`Data field missing in response for type: \${type}\`);
+            throw new Error(`Data field missing in response for type: ${type}`);
         }
 
         // Base64 decoding in Node.js
@@ -66,10 +67,10 @@ async function fetchAndCacheData(type, filename, ts, sig) {
         
         // Cache the decoded content
         await fs.writeFile(filePath, decodedContent, 'utf8');
-        console.log(\`[SUCCESS] Cached \${type} data to \${filename}\`);
+        console.log(`[SUCCESS] Cached ${type} data to ${filename}`);
 
     } catch (error) {
-        console.error(\`[ERROR] Failed to fetch or decode \${type} data: \${error.message}\`);
+        console.error(`[ERROR] Failed to fetch or decode ${type} data: ${error.message}`);
         // Optional: Log error details to a file
     }
 }
@@ -78,14 +79,14 @@ async function fetchAndCacheData(type, filename, ts, sig) {
  * Main update routine: Fetches token, then fetches all three content types.
  */
 async function runUpdateCycle() {
-    console.log(\`\\n--- Starting update cycle at \${new Date().toLocaleTimeString()} ---\`);
+    console.log(`\n--- Starting update cycle at ${new Date().toLocaleTimeString()} ---`);
     lastUpdateTime = new Date().toLocaleTimeString();
     
     try {
         // 1. Fetch Token
         const tokenResponse = await fetch(TOKEN_URL, { headers: HEADERS });
         if (!tokenResponse.ok) {
-             throw new Error(\`Token API failed: \${tokenResponse.status}\`);
+             throw new Error(`Token API failed: ${tokenResponse.status}`);
         }
         
         const tokenData = await tokenResponse.json();
@@ -95,7 +96,7 @@ async function runUpdateCycle() {
              throw new Error('Token API did not return timestamp or signature.');
         }
 
-        console.log(\`Token fetched. TS: \${timestamp}, SIG: \${signature.substring(0, 8)}...\`);
+        console.log(`Token fetched. TS: ${timestamp}, SIG: ${signature.substring(0, 8)}...`);
 
         // 2. Execute all three requests concurrently
         const updatePromises = REQUEST_TYPES.map(req => 
@@ -107,7 +108,7 @@ async function runUpdateCycle() {
         console.log('--- Update cycle finished ---');
         
     } catch (error) {
-        console.error(\`[CRITICAL] Major update failure: \${error.message}\`);
+        console.error(`[CRITICAL] Major update failure: ${error.message}`);
     }
 }
 
@@ -115,7 +116,7 @@ async function runUpdateCycle() {
 
 // 1. Create cache directory if it doesn't exist
 fs.mkdir(CACHE_DIR, { recursive: true })
-    .then(() => console.log(\`Cache directory created at \${CACHE_DIR}\`))
+    .then(() => console.log(`Cache directory created at ${CACHE_DIR}`))
     .catch(err => console.error('Failed to create cache directory:', err));
 
 // 2. Run the update cycle immediately on start
@@ -141,6 +142,6 @@ app.get('/status', (req, res) => {
 
 // Start the server
 app.listen(PORT, () => {
-    console.log(\`Server running on http://localhost:\${PORT}\`);
-    console.log(\`Cached data will be available at http://localhost:\${PORT}/cache/\`);
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Cached data will be available at http://localhost:${PORT}/cache/`);
 });
