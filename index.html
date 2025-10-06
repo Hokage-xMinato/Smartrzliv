@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Class Status Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background: #f0f2f5; }
+        .code-block {
+            background: #272822;
+            color: #f8f8f2;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8 font-sans">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 p-4 bg-white rounded-xl shadow-lg">
+            <h1 class="text-4xl font-extrabold text-blue-600 mb-2">Live Class Data Dashboard</h1>
+            <p class="text-gray-600">Data automatically fetched and updated every minute by the backend server.</p>
+            <div id="status-display" class="mt-3 text-sm font-semibold text-gray-700">
+                Status: Connecting...
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Upcoming Classes Card -->
+            <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">📅 Upcoming Classes</h2>
+                <pre id="upcoming-data" class="code-block p-4 rounded-lg text-sm overflow-x-auto min-h-[200px] text-yellow-300">Loading data...</pre>
+            </div>
+
+            <!-- Live Classes Card -->
+            <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">🔴 Live Classes</h2>
+                <pre id="live-data" class="code-block p-4 rounded-lg text-sm overflow-x-auto min-h-[200px] text-red-400">Loading data...</pre>
+            </div>
+
+            <!-- Completed Classes Card -->
+            <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition duration-300">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4 border-b pb-2">✅ Completed Classes</h2>
+                <pre id="completed-data" class="code-block p-4 rounded-lg text-sm overflow-x-auto min-h-[200px] text-green-300">Loading data...</pre>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const REQUEST_TYPES = [
+            { id: 'upcoming-data', filename: 'upcoming.json' },
+            { id: 'live-data', filename: 'live.json' },
+            { id: 'completed-data', filename: 'completed.json' },
+        ];
+
+        /**
+         * Fetches data from the server's cache endpoint and formats it for display.
+         */
+        async function fetchAndDisplayData() {
+            const statusElement = document.getElementById('status-display');
+
+            const fetchStatus = fetch('/status')
+                .then(res => res.json())
+                .then(data => {
+                    statusElement.innerHTML = \`Last Successful Update (Server Time): <span class="text-blue-600">\${data.lastUpdate}</span>. Refreshing data...\`;
+                })
+                .catch(() => {
+                     statusElement.innerHTML = \`Status: <span class="text-red-500">Error connecting to server status.</span>\`;
+                });
+
+            const dataPromises = REQUEST_TYPES.map(async ({ id, filename }) => {
+                const element = document.getElementById(id);
+                try {
+                    const response = await fetch(\`/cache/\${filename}\`);
+                    if (!response.ok) {
+                        element.textContent = \`[ERROR: \${response.status}] Cache file not ready or server error.\`;
+                        return;
+                    }
+                    const text = await response.text();
+                    // Attempt to parse and pretty-print the decoded JSON content
+                    try {
+                        element.textContent = JSON.stringify(JSON.parse(text), null, 2);
+                    } catch (e) {
+                        // If it's not valid JSON (but still valid decoded data), show raw text
+                        element.textContent = \`[RAW DECODED DATA]: \${text}\`;
+                    }
+                } catch (error) {
+                    element.textContent = \`[FETCH ERROR] Server connection failed: \${error.message}\`;
+                }
+            });
+
+            await Promise.all([fetchStatus, ...dataPromises]);
+        }
+
+        // Fetch data immediately and then every 10 seconds to show updates
+        fetchAndDisplayData();
+        setInterval(fetchAndDisplayData, 10000); // Poll the cache every 10 seconds
+    </script>
+</body>
+</html>
