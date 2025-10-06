@@ -12,11 +12,14 @@ const TOKEN_URL = 'https://rolexcoderz.in/api/get-token';
 const CONTENT_URL = 'https://rolexcoderz.in/api/get-live-classes';
 const CACHE_INTERVAL_MS = 60000; // 1 minute (60,000 milliseconds)
 
-// Standard headers for API calls
+// Standard headers for API calls, ENHANCED TO AVOID 403 ERRORS
 const HEADERS = {
     'Content-Type': 'application/json',
-    'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36',
-    'Referer': 'https://rolexcoderz.in/live-classes'
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', // Standard desktop Chrome UA
+    'Referer': 'https://rolexcoderz.in/live-classes',
+    'Accept': 'application/json, text/plain, */*', // Tells the server we accept JSON
+    'Accept-Language': 'en-US,en;q=0.9', // Standard language preference
+    'Connection': 'keep-alive', // Keeps the connection open
 };
 
 // Define the three class types we need to fetch
@@ -50,9 +53,9 @@ async function fetchAndCacheData(type, filename, ts, sig) {
             body: payload,
         });
 
-        // FIX: The original error happened here due to escaped backticks.
         if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+            // Include status text for better debugging
+            throw new Error(`Content API failed! Status: ${response.status} ${response.statusText}`);
         }
 
         const rawJson = await response.json();
@@ -71,7 +74,6 @@ async function fetchAndCacheData(type, filename, ts, sig) {
 
     } catch (error) {
         console.error(`[ERROR] Failed to fetch or decode ${type} data: ${error.message}`);
-        // Optional: Log error details to a file
     }
 }
 
@@ -86,7 +88,8 @@ async function runUpdateCycle() {
         // 1. Fetch Token
         const tokenResponse = await fetch(TOKEN_URL, { headers: HEADERS });
         if (!tokenResponse.ok) {
-             throw new Error(`Token API failed: ${tokenResponse.status}`);
+             // Throw specific error for token failure
+             throw new Error(`Token API failed: ${tokenResponse.status} ${tokenResponse.statusText}`);
         }
         
         const tokenData = await tokenResponse.json();
@@ -132,7 +135,7 @@ setInterval(runUpdateCycle, CACHE_INTERVAL_MS);
 app.use(express.static(path.join(__dirname)));
 
 // Serve static files from the cache directory (for the JSON files)
-// This makes http://localhost:3000/cache/upcoming.json available
+// This makes http://<URL>/cache/upcoming.json available
 app.use('/cache', express.static(CACHE_DIR));
 
 // Endpoint to display the last update time on the front-end
@@ -142,6 +145,5 @@ app.get('/status', (req, res) => {
 
 // Start the server
 app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Cached data will be available at http://localhost:${PORT}/cache/`);
+    console.log(`Server running on port ${PORT}`);
 });
