@@ -12,14 +12,29 @@ const TOKEN_URL = 'https://rolexcoderz.in/api/get-token';
 const CONTENT_URL = 'https://rolexcoderz.in/api/get-live-classes';
 const CACHE_INTERVAL_MS = 60000; // 1 minute (60,000 milliseconds)
 
-// Standard headers for API calls, ENHANCED TO AVOID 403 ERRORS
+// Standard headers for API calls, ENHANCED to mimic a full browser request
 const HEADERS = {
+    // Core headers
     'Content-Type': 'application/json',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', // Standard desktop Chrome UA
+    'Accept': 'application/json, text/plain, */*', 
     'Referer': 'https://rolexcoderz.in/live-classes',
-    'Accept': 'application/json, text/plain, */*', // Tells the server we accept JSON
-    'Accept-Language': 'en-US,en;q=0.9', // Standard language preference
-    'Connection': 'keep-alive', // Keeps the connection open
+    
+    // Most comprehensive User-Agent (Chrome on Windows)
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+    
+    // Standard browser headers
+    'Accept-Encoding': 'gzip, deflate, br', // Required for --compressed equivalent
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Connection': 'keep-alive',
+    'Cache-Control': 'max-age=0',
+    'DNT': '1', // Do Not Track
+    
+    // Important anti-bot headers (Sec-Fetch-*)
+    'Sec-Fetch-Dest': 'empty', 
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Site': 'same-origin',
+    'Sec-Fetch-User': '?F',
+    'Pragma': 'no-cache', // Tells proxies not to cache
 };
 
 // Define the three class types we need to fetch
@@ -54,7 +69,7 @@ async function fetchAndCacheData(type, filename, ts, sig) {
         });
 
         if (!response.ok) {
-            // Include status text for better debugging
+            // Throw specific error for content failure
             throw new Error(`Content API failed! Status: ${response.status} ${response.statusText}`);
         }
 
